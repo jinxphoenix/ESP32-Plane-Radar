@@ -23,6 +23,12 @@ constexpr unsigned long kWifiDownGraceMs = 4000;
 /** Minimum interval between background reconnect tries. */
 constexpr unsigned long kWifiReconnectIntervalMs = 15000;
 
+// --- Status LED (ESP32-C3 Super Mini onboard blue LED, active LOW) ---
+constexpr gpio_num_t kStatusLedPin = GPIO_NUM_8;
+constexpr bool kStatusLedActiveLow = true;
+/** Blink half-period (ms) while the setup portal / AP is waiting for you. */
+constexpr unsigned long kStatusLedBlinkMs = 250UL;
+
 // --- BOOT button (ESP32-C3 Super Mini, active LOW) ---
 constexpr gpio_num_t kBootPin = GPIO_NUM_9;
 constexpr unsigned long kBootResetHoldMs = 3000UL;

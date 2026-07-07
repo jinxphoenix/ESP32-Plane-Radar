@@ -17,6 +17,15 @@ constexpr int kLineGap = 6;
 const int kCenterX = config::kDisplayWidth / 2;
 const int kCenterY = config::kDisplayHeight / 2;
 
+/** Build an RGB565 color that renders correctly on this BGR panel (R/B swapped
+ * when kDisplayRgbOrder is set), matching the radar palette convention. */
+uint16_t panelColor(uint8_t r, uint8_t g, uint8_t b) {
+  if (config::kDisplayRgbOrder) {
+    return tft.color565(b, g, r);
+  }
+  return tft.color565(r, g, b);
+}
+
 constexpr int kSpinnerDotCount = 10;
 constexpr int kSpinnerRadius = 113;
 constexpr int kSpinnerDotRadius = 2;
@@ -215,8 +224,10 @@ void statusScreenPortal() {
       {config::kPortalHostUrl, 1.12f, &kPortalGfxEmphasis},
       {"or 192.168.4.1", 1.0f, &kPortalGfxBody},
   };
-  drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
-                sizeof(lines) / sizeof(lines[0]));
+  // AP / first-time setup: fill the screen blue so it's unmistakable.
+  const uint16_t bg = panelColor(0, 40, 255);
+  const uint16_t fg = panelColor(255, 255, 255);
+  drawTextBlock(bg, fg, lines, sizeof(lines) / sizeof(lines[0]));
 }
 
 void statusScreenConnectFailed() {

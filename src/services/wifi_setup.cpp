@@ -67,6 +67,29 @@ void startLanWebPortal();
 void stopLanWebPortal();
 bool wifiLinkUp();
 
+/** Drive the status LED to reflect a logical on/off (handles active-LOW wiring). */
+void statusLedWrite(bool on) {
+  const bool level = config::kStatusLedActiveLow ? !on : on;
+  digitalWrite(config::kStatusLedPin, level ? HIGH : LOW);
+}
+
+void statusLedInit() {
+  pinMode(config::kStatusLedPin, OUTPUT);
+  statusLedWrite(false);
+}
+
+/** Toggle the LED on a fixed cadence; call repeatedly while waiting for setup. */
+void statusLedBlinkTick() {
+  static unsigned long last_toggle_ms = 0;
+  static bool on = false;
+  const unsigned long now = millis();
+  if (now - last_toggle_ms >= config::kStatusLedBlinkMs) {
+    last_toggle_ms = now;
+    on = !on;
+    statusLedWrite(on);
+  }
+}
+
 constexpr int kCoordParamLen = 20;
 constexpr char kCoordInputAttrs[] =
     " type=\"number\" step=\"0.000001\"";
@@ -338,12 +361,15 @@ bool openConfigPortal() {
   s_wm.setConfigPortalBlocking(false);
   s_wm.startConfigPortal(config::kPortalApName);
   while (s_wm.getConfigPortalActive()) {
+    statusLedBlinkTick();  // blink: AP up, waiting for you to join "PlaneRadar-Setup"
     bootButtonPollLongPress();
     if (s_wm.process()) {
+      statusLedWrite(false);
       return true;
     }
     delay(10);
   }
+  statusLedWrite(false);
   return wifiLinkUp();
 }
 
@@ -418,6 +444,7 @@ bool wifiReconnect() {
 void wifiLoop() {
   ensureWifiManager();
   if (wifiLinkUp()) {
+    statusLedWrite(true);  // solid: connected
     if (!s_wm.getWebPortalActive() && !s_wm.getConfigPortalActive()) {
       startLanWebPortal();
     }
@@ -426,12 +453,14 @@ void wifiLoop() {
       s_wm.process();
     }
   } else {
+    statusLedWrite(false);  // off: link down (reconnect in progress)
     stopLanWebPortal();
   }
 }
 
 bool wifiSetupConnect() {
   initBootButton();
+  statusLedInit();
   ensureWifiManager();
 
   const bool force_portal = consumeForceConfigPortal();
